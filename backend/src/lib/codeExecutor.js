@@ -26,13 +26,21 @@ const LANGUAGE_CONFIG = {
 
 export async function executeCode(language, code, stdin = "") {
   try {
+    // Check language
     const config = LANGUAGE_CONFIG[language];
 
-    // Check language
     if (!config) {
       return {
         success: false,
         error: `Unsupported language: ${language}`,
+      };
+    }
+
+    // Check API key
+    if (!ENV.ONECOMPILER_API_KEY) {
+      return {
+        success: false,
+        error: "OneCompiler API key is missing",
       };
     }
 
@@ -60,11 +68,18 @@ export async function executeCode(language, code, stdin = "") {
 
     const data = await response.json();
 
+    // Debug information
+    console.log("OneCompiler status:", response.status);
+    console.log("OneCompiler response:", data);
+
     // API error
-    if (!response.ok) {
+    if (!response.ok || data.status === "failed") {
       return {
         success: false,
-        error: data.error || `API error: ${response.status}`,
+        error:
+          data.error ||
+          data.message ||
+          `OneCompiler API error: ${response.status}`,
       };
     }
 
@@ -83,9 +98,13 @@ export async function executeCode(language, code, stdin = "") {
       output: data.stdout || "No output",
     };
   } catch (error) {
+    console.error("Code execution error:", error);
+
     return {
       success: false,
       error: `Code execution failed: ${error.message}`,
     };
   }
-}
+}git add .
+git commit -m "Fix code execution"
+git push
