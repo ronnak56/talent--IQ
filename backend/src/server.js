@@ -14,8 +14,17 @@ import codeRoutes from "./routes/codeRoutes.js";
 
 const app = express();
 
-// Clerk webhook MUST come before express.json()
+// =====================================================
+// 1. CLERK WEBHOOK
+// MUST COME BEFORE express.json()
+// =====================================================
+
 app.use("/api/webhooks", webhookRoutes);
+
+
+// =====================================================
+// 2. NORMAL MIDDLEWARE
+// =====================================================
 
 app.use(express.json());
 
@@ -28,7 +37,10 @@ app.use(
 
 app.use(clerkMiddleware());
 
-app.use("/api/code", codeRoutes);
+
+// =====================================================
+// 3. INNGEST
+// =====================================================
 
 app.use(
   "/api/inngest",
@@ -38,8 +50,21 @@ app.use(
   })
 );
 
+
+// =====================================================
+// 4. API ROUTES
+// =====================================================
+
+app.use("/api/code", codeRoutes);
+
 app.use("/api/chat", chatRoutes);
+
 app.use("/api/sessions", sessionRoutes);
+
+
+// =====================================================
+// 5. HEALTH CHECK
+// =====================================================
 
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -47,15 +72,26 @@ app.get("/health", (req, res) => {
   });
 });
 
+
+// =====================================================
+// 6. START SERVER
+// =====================================================
+
 const startServer = async () => {
   try {
     await connectDB();
 
     app.listen(ENV.PORT, "0.0.0.0", () => {
-      console.log("Server is running on port:", ENV.PORT);
+      console.log(
+        "Server is running on port:",
+        ENV.PORT
+      );
     });
   } catch (error) {
-    console.error("💥 Error starting server:", error);
+    console.error(
+      "💥 Error starting server:",
+      error
+    );
   }
 };
 
