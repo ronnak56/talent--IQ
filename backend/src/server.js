@@ -21,7 +21,6 @@ const app = express();
 
 app.use("/api/webhooks", webhookRoutes);
 
-
 // =====================================================
 // 2. NORMAL MIDDLEWARE
 // =====================================================
@@ -37,7 +36,6 @@ app.use(
 
 app.use(clerkMiddleware());
 
-
 // =====================================================
 // 3. INNGEST
 // =====================================================
@@ -50,28 +48,29 @@ app.use(
   })
 );
 
-
 // =====================================================
 // 4. API ROUTES
 // =====================================================
 
 app.use("/api/code", codeRoutes);
-
 app.use("/api/chat", chatRoutes);
-
 app.use("/api/sessions", sessionRoutes);
-
 
 // =====================================================
 // 5. HEALTH CHECK
 // =====================================================
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    msg: "Talent IQ Backend is running",
+  });
+});
 
 app.get("/health", (req, res) => {
   res.status(200).json({
     msg: "API is up and running",
   });
 });
-
 
 // =====================================================
 // 6. START SERVER
@@ -82,16 +81,10 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(ENV.PORT, "0.0.0.0", () => {
-      console.log(
-        "Server is running on port:",
-        ENV.PORT
-      );
+      console.log("Server is running on port:", ENV.PORT);
     });
   } catch (error) {
-    console.error(
-      "💥 Error starting server:",
-      error
-    );
+    console.error("💥 Error starting server:", error);
   }
 };
 
