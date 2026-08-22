@@ -14,14 +14,9 @@ import codeRoutes from "./routes/codeRoutes.js";
 
 const app = express();
 
-// ===============================
-// Clerk Webhook
-// ===============================
+// Clerk webhook MUST come before express.json()
 app.use("/api/webhooks", webhookRoutes);
 
-// ===============================
-// Middleware
-// ===============================
 app.use(express.json());
 
 app.use(
@@ -31,19 +26,10 @@ app.use(
   })
 );
 
-// ===============================
-// Code Routes
-// ===============================
-app.use("/api/code", codeRoutes);
-
-// ===============================
-// Clerk Authentication
-// ===============================
 app.use(clerkMiddleware());
 
-// ===============================
-// Inngest
-// ===============================
+app.use("/api/code", codeRoutes);
+
 app.use(
   "/api/inngest",
   serve({
@@ -52,33 +38,24 @@ app.use(
   })
 );
 
-// ===============================
-// API Routes
-// ===============================
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 
-// ===============================
-// Health Check
-// ===============================
 app.get("/health", (req, res) => {
   res.status(200).json({
     msg: "API is up and running",
   });
 });
 
-// ===============================
-// Start Server
-// ===============================
 const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(ENV.PORT, () => {
+    app.listen(ENV.PORT, "0.0.0.0", () => {
       console.log("Server is running on port:", ENV.PORT);
     });
   } catch (error) {
-    console.error("💥 Error starting the server:", error);
+    console.error("💥 Error starting server:", error);
   }
 };
 

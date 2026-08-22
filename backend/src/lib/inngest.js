@@ -1,46 +1,58 @@
 import { Inngest } from "inngest";
 import { connectDB } from "./db.js";
 import User from "../models/User.js";
-import { deleteStreamUser, upsertStreamUser } from "./stream.js";
 
 export const inngest = new Inngest({ id: "talent-iq" });
 
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
   { event: "clerk/user.created" },
+
   async ({ event }) => {
-    await connectDB();
+    try {
+      console.log("🔥 syncUser started");
 
-    const { id, email_addresses, first_name, last_name, image_url } = event.data;
+      await connectDB();
+      console.log("✅ MongoDB connected inside Inngest");
 
-    const newUser = {
-      clerkId: id,
-      email: email_addresses[0]?.email_address,
-      name: `${first_name || ""} ${last_name || ""}`,
-      profileImage: image_url,
-    };
+      const {
+        id,
+        email_addresses,
+        first_name,
+        last_name,
+        image_url,
+      } = event.data;
 
-    await User.create(newUser);
+      const userData = {
+        clerkId: id,
+        email: email_addresses?.[0]?.email_address,
+        name: `${first_name || ""} ${last_name || ""}`.trim(),
+        profileImage: image_url,
+      };
 
-    await upsertStreamUser({
-      id: newUser.clerkId.toString(),
-      name: newUser.name,
-      image: newUser.profileImage,
-    });
+      console.log("👤 User data:", userData);
+
+      const user = await User.findOneAndUpdate(
+        { clerkId: id },
+        userData,
+        {
+          new: true,
+          upsert: true,
+        }
+      );
+
+      console.log("✅ USER SAVED IN MONGODB:", user);
+
+      return {
+        success: true,
+        userId: user.clerkId,
+      };
+
+    } catch (error) {
+      console.error("❌ SYNC USER ERROR:", error);
+      throw error;
+    }
   }
 );
 
-const deleteUserFromDB = inngest.createFunction(
-  { id: "delete-user-from-db" },
-  { event: "clerk/user.deleted" },
-  async ({ event }) => {
-    await connectDB();
-
-    const { id } = event.data;
-    await User.deleteOne({ clerkId: id });
-
-    await deleteStreamUser(id.toString());
-  }
-);
-
-export const functions = [syncUser, deleteUserFromDB];
+export const functions = [syncUser];
