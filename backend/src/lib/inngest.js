@@ -7,12 +7,10 @@ import { ENV } from "./env.js";
 export const inngest = new Inngest({
   id: "talent-iq",
   eventKey: ENV.INNGEST_EVENT_KEY,
+  signingKey: ENV.INNGEST_SIGNING_KEY,
 });
 
-// ===============================
 // CREATE USER
-// ===============================
-
 const syncUser = inngest.createFunction(
   {
     id: "sync-user",
@@ -22,6 +20,8 @@ const syncUser = inngest.createFunction(
   },
   async ({ event }) => {
     try {
+      console.log("🚀 Inngest sync-user started");
+
       await connectDB();
 
       const {
@@ -36,7 +36,8 @@ const syncUser = inngest.createFunction(
 
       const name = `${first_name || ""} ${last_name || ""}`.trim();
 
-      // Check if user already exists
+      console.log("👤 Creating user:", email);
+
       const existingUser = await User.findOne({
         clerkId: id,
       });
@@ -46,7 +47,6 @@ const syncUser = inngest.createFunction(
         return;
       }
 
-      // Save user to MongoDB
       const newUser = await User.create({
         clerkId: id,
         email,
@@ -56,7 +56,6 @@ const syncUser = inngest.createFunction(
 
       console.log("✅ User saved to MongoDB:", newUser.email);
 
-      // Save user to Stream
       await upsertStreamUser({
         id: newUser.clerkId.toString(),
         name: newUser.name,
@@ -71,10 +70,7 @@ const syncUser = inngest.createFunction(
   }
 );
 
-// ===============================
 // DELETE USER
-// ===============================
-
 const deleteUserFromDB = inngest.createFunction(
   {
     id: "delete-user-from-db",
@@ -84,18 +80,18 @@ const deleteUserFromDB = inngest.createFunction(
   },
   async ({ event }) => {
     try {
+      console.log("🗑️ Inngest delete-user started");
+
       await connectDB();
 
       const { id } = event.data;
 
-      // Delete user from MongoDB
       await User.deleteOne({
         clerkId: id,
       });
 
       console.log("✅ User deleted from MongoDB:", id);
 
-      // Delete user from Stream
       await deleteStreamUser(id.toString());
 
       console.log("✅ User deleted from Stream");
@@ -105,10 +101,6 @@ const deleteUserFromDB = inngest.createFunction(
     }
   }
 );
-
-// ===============================
-// EXPORT FUNCTIONS
-// ===============================
 
 export const functions = [
   syncUser,
