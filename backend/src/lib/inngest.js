@@ -10,7 +10,7 @@ export const inngest = new Inngest({
   signingKey: ENV.INNGEST_SIGNING_KEY,
 });
 
-// CREATE USER
+// CREATE / SYNC USER
 const syncUser = inngest.createFunction(
   {
     id: "sync-user",
@@ -36,33 +36,50 @@ const syncUser = inngest.createFunction(
 
       const name = `${first_name || ""} ${last_name || ""}`.trim();
 
-      console.log("👤 Creating user:", email);
+      console.log("👤 Syncing user:", email);
 
-      const existingUser = await User.findOne({
-        clerkId: id,
+      // Check if user already exists by Clerk ID OR email
+      let user = await User.findOne({
+        $or: [
+          { clerkId: id },
+          { email: email },
+        ],
       });
 
-      if (existingUser) {
-        console.log("⚠️ User already exists:", id);
-        return;
+      // If user already exists, update the existing user
+      if (user) {
+        console.log("⚠️ User already exists. Updating:", email);
+
+        user.clerkId = id;
+        user.email = email;
+        user.name = name;
+        user.profileImage = image_url || "";
+
+        await user.save();
+
+        console.log("✅ Existing user updated:", user.email);
+      } 
+      // Otherwise create a new user
+      else {
+        user = await User.create({
+          clerkId: id,
+          email: email,
+          name: name,
+          profileImage: image_url || "",
+        });
+
+        console.log("✅ New user created:", user.email);
       }
 
-      const newUser = await User.create({
-        clerkId: id,
-        email,
-        name,
-        profileImage: image_url,
-      });
-
-      console.log("✅ User saved to MongoDB:", newUser.email);
-
+      // Sync user with Stream
       await upsertStreamUser({
-        id: newUser.clerkId.toString(),
-        name: newUser.name,
-        image: newUser.profileImage,
+        id: user.clerkId.toString(),
+        name: user.name,
+        image: user.profileImage,
       });
 
       console.log("✅ User synced to Stream");
+
     } catch (error) {
       console.error("❌ Error syncing user:", error);
       throw error;
@@ -86,15 +103,18 @@ const deleteUserFromDB = inngest.createFunction(
 
       const { id } = event.data;
 
+      // Delete user from MongoDB
       await User.deleteOne({
         clerkId: id,
       });
 
       console.log("✅ User deleted from MongoDB:", id);
 
+      // Delete user from Stream
       await deleteStreamUser(id.toString());
 
       console.log("✅ User deleted from Stream");
+
     } catch (error) {
       console.error("❌ Error deleting user:", error);
       throw error;
@@ -102,6 +122,7 @@ const deleteUserFromDB = inngest.createFunction(
   }
 );
 
+// Export all Inngest functions
 export const functions = [
   syncUser,
   deleteUserFromDB,
