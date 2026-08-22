@@ -105,6 +105,4 @@ export async function executeCode(language, code, stdin = "") {
       error: `Code execution failed: ${error.message}`,
     };
   }
-}git add .
-git commit -m "Fix code execution"
-git push
+}
