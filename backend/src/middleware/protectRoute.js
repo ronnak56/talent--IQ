@@ -3,10 +3,10 @@ import User from "../models/User.js";
 
 export const protectRoute = async (req, res, next) => {
   try {
-    const { isAuthenticated, userId } = getAuth(req);
+    const { userId } = getAuth(req);
 
-    // User is not logged in
-    if (!isAuthenticated || !userId) {
+    // User is not authenticated
+    if (!userId) {
       return res.status(401).json({
         message: "Unauthorized - Please login",
       });
@@ -21,7 +21,7 @@ export const protectRoute = async (req, res, next) => {
       });
     }
 
-    // Attach MongoDB user to request
+    // Attach user to request
     req.user = user;
 
     next();
@@ -32,4 +32,4 @@ export const protectRoute = async (req, res, next) => {
       message: "Internal Server Error",
     });
   }
-};git add . && git commit -m "fix Clerk API authentication" && git push
+};
