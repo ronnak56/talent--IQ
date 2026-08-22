@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/api/code/execute";
+const API_URL = `${import.meta.env.VITE_API_URL}/code`;
 
 export async function executeCode(language, code, stdin = "") {
   try {
